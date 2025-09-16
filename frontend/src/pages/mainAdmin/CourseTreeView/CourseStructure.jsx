@@ -46,8 +46,48 @@ const CourseStructure = () => {
       .catch((err) => console.error("Failed to load chapters:", err));
   }, [activeSubject]);
 
-  const sourceCourseId = useMemo(() => courseId || "cat-2026-structure", [courseId]);
+  const sourceCourseId = useMemo(() => {
+    if (courseId) return courseId;
+    const root = document.querySelector('[data-course-id]');
+    const fromAttr = root && root.getAttribute('data-course-id');
+    return fromAttr || 'cat-2026-structure';
+  }, [courseId]);
   const sourceUpdatedAt = useMemo(() => (course && (course.updatedAt || course.updated_at)) || "", [course]);
+
+  // Build structure JSON from window.__tgStructure or DOM
+  const activeSubjectIdRef = React.useRef(null);
+  useEffect(() => { activeSubjectIdRef.current = activeSubject; }, [activeSubject]);
+  const buildStructure = () => {
+    if (window.__tgStructure && Array.isArray(window.__tgStructure.tabs)) {
+      return { sourceCourseId, tabs: window.__tgStructure.tabs };
+    }
+    const tabNames = ["Quant", "DI-LR", "Verbal", "GK & CA", "MOCK TEST", "CAT PAPERS"];
+    const tabs = tabNames.map((name) => ({ name, sections: [] }));
+
+    try {
+      const activeSubj = subjects.find((s) => s._id === activeSubjectIdRef.current);
+      const norm = (s) => String(s || '').trim().toLowerCase();
+      const activeName = activeSubj ? activeSubj.name : '';
+      const idx = tabs.findIndex((t) => norm(t.name) === norm(activeName));
+      if (idx >= 0) {
+        const sections = chapters.map((ch) => ({ title: ch.name, topics: [] }));
+        tabs[idx].sections = sections;
+      }
+    } catch {}
+
+    try {
+      const rows = Array.from(document.querySelectorAll('.tz-chapter-card summary'));
+      const titles = rows.map((r) => (r.textContent || '').trim()).filter(Boolean);
+      if (titles.length) {
+        const qIdx = tabs.findIndex((t) => t.name === 'Quant');
+        if (qIdx >= 0 && tabs[qIdx].sections.length === 0) {
+          tabs[qIdx].sections = titles.map((t) => ({ title: t }));
+        }
+      }
+    } catch {}
+
+    return { sourceCourseId, tabs };
+  };
 
   return (
     <AdminLayout>
@@ -433,6 +473,13 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   };
 
+  const tabsHash = async (structure) => {
+    const base = JSON.stringify(structure.tabs || []);
+    return sha256(base);
+  };
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
   const handleSend = async () => {
     if (!selected.length) {
       toast.info('Please select at least one course');
@@ -442,30 +489,71 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
     try {
       const token = localStorage.getItem('adminToken');
       const targets = [...selected].sort();
-      const keyBase = JSON.stringify({ s: sourceCourseId || 'cat-2026-structure', t: targets, u: sourceUpdatedAt || '' });
-      const idempotencyKey = await sha256(keyBase);
+      const structure = buildStructure();
+      const th = await tabsHash(structure);
+      const idempotencyKey = await sha256(`${structure.sourceCourseId}|${targets.join(',')}|${th}`);
+
       const body = {
-        sourceCourseId: sourceCourseId || 'cat-2026-structure',
+        sourceCourseId: structure.sourceCourseId,
         targetCourseIds: targets,
-        includeTabs: INCLUDE_TABS,
-        mode: { upsert: true, skipDuplicates: true },
-        idempotencyKey
+        structure,
+        mode: { upsert: true, skipDuplicates: true }
       };
-      const res = await fetch(`${API_BASE}/admin/courses/clone-structure`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Request failed (${res.status})`);
+
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'Idempotency-Key': idempotencyKey };
+
+      // Try bulk first with retries
+      let attempts = 0; let maxAttempts = 3; let res;
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          res = await fetch(`${API_BASE}/admin/courses/clone-structure-bulk`, { method: 'POST', headers, body: JSON.stringify(body) });
+          if (res.status === 404 || res.status === 501) throw new Error('bulk-not-supported');
+          if (!res.ok) throw new Error(await res.text() || `Status ${res.status}`);
+          break;
+        } catch (err) {
+          if (attempts >= maxAttempts || err.message === 'bulk-not-supported') {
+            res = null;
+            break;
+          }
+          await sleep(400 * attempts);
+        }
       }
+
+      if (!res) {
+        // Fallback per-course
+        let okCount = 0; let lastErr = null;
+        for (const tid of targets) {
+          let a = 0; let success = false;
+          while (a < maxAttempts && !success) {
+            a++;
+            try {
+              const r = await fetch(`${API_BASE}/admin/courses/${tid}/structure/clone`, { method: 'POST', headers, body: JSON.stringify({ structure, mode: { upsert: true, skipDuplicates: true } }) });
+              if (r.status === 404 || r.status === 501) {
+                // Final fallback per tab
+                for (const tab of structure.tabs || []) {
+                  const r2 = await fetch(`${API_BASE}/admin/courses/${tid}/sections/upsertBatch`, { method: 'POST', headers, body: JSON.stringify({ tab: tab.name, sections: tab.sections || [] }) });
+                  if (!r2.ok) throw new Error(await r2.text() || `Tab ${tab.name} failed`);
+                }
+              } else if (!r.ok) {
+                throw new Error(await r.text() || `Status ${r.status}`);
+              }
+              success = true; okCount++;
+            } catch (e) {
+              lastErr = e;
+              await sleep(400 * a);
+            }
+          }
+        }
+        if (!okCount) throw lastErr || new Error('Failed to clone structure');
+        toast.success(`Structure copied/updated in ${okCount} courses`);
+        onClose();
+        return;
+      }
+
       const data = await res.json();
-      const n = data.copied || data.updated || (data.result && (data.result.copied || data.result.updated)) || selected.length;
-      toast.success(`Structure copied to ${n} courses`);
+      const n = data.copied || (data.details ? data.details.filter(d => !d.skipped).length : 0) || selected.length;
+      toast.success(`Structure copied/updated in ${n} courses`);
       onClose();
     } catch (e) {
       toast.error(e.message || 'Failed to send structure');
@@ -475,25 +563,27 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
   };
 
   return open ? (
-    <div className="tz-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="send-structure-title" onClick={onClose}>
+    <div id="tg-send-modal" className="tz-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="send-structure-title" onClick={onClose}>
       <div className="tz-modal" ref={containerRef} onClick={(e) => e.stopPropagation()}>
         <h3 id="send-structure-title" className="tz-modal-title">Send structure to courses</h3>
         <div className="tz-send-controls">
           <input
+            id="tg-course-search"
             type="search"
             className="tz-send-search"
-            placeholder="Search courses by title or id"
+            placeholder="Search courses…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search courses"
           />
           <label className="tz-select-all-row">
-            <input type="checkbox" checked={allSelectedOnFiltered} onChange={toggleAll} />
+            <input id="tg-select-all" type="checkbox" checked={allSelectedOnFiltered} onChange={toggleAll} />
             <span>Select all</span>
           </label>
         </div>
 
         <div
+          id="tg-course-list"
           className="tz-course-list-viewport"
           ref={viewportRef}
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
@@ -522,6 +612,7 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
         <div className="tz-modal-footer">
           <button type="button" className="tz-btn-secondary" onClick={onClose} disabled={loading}>Cancel</button>
           <button
+            id="tg-send-confirm"
             type="button"
             className="tz-btn-primary"
             onClick={handleSend}

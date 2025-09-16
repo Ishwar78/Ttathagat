@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "../../utils/axiosConfig";
 import "./AdminLogin.css";
+import "../../admin-theme.css";
+import AdminThemeProvider from "../../components/AdminTheme/AdminThemeProvider";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -38,34 +40,37 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="admin-login__container">
-      <div className="admin-login__left">
-        Welcome to <br /> Admin Panel
-      </div>
-      <div className="admin-login__right">
-        <form className="admin-login__form" onSubmit={handleSubmit}>
-          <h2>Admin Login</h2>
-          <input
-            type="email"
-            placeholder="Email"
-            required
-            className="admin-login__input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            className="admin-login__input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit" className="admin-login__button" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-          {error && <p className="admin-login__error">{error}</p>}
-        </form>
+    <div className="admin-theme">
+      <AdminThemeProvider />
+      <div className="admin-login__container">
+        <div className="admin-login__left">
+          Welcome to <br /> Admin Panel
+        </div>
+        <div className="admin-login__right">
+          <form className="admin-login__form" onSubmit={handleSubmit}>
+            <h2>Admin Login</h2>
+            <input
+              type="email"
+              placeholder="Email"
+              required
+              className="admin-login__input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              className="admin-login__input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit" className="admin-login__button" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </button>
+            {error && <p className="admin-login__error">{error}</p>}
+          </form>
+        </div>
       </div>
     </div>
   );

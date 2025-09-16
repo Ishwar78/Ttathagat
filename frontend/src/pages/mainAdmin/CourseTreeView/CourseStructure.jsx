@@ -51,10 +51,11 @@ const CourseStructure = () => {
 
   return (
     <AdminLayout>
-      <div className="tz-container">
+      <div className="tz-container" data-course-id={courseId || ''}>
         <div className="tz-heading-wrap">
           <h1 className="tz-heading">📚 {course?.name} - Structure</h1>
           <button
+            id="tg-send-btn"
             type="button"
             className="tz-send-btn"
             aria-label="Send structure to courses"

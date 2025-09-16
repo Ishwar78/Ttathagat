@@ -341,16 +341,24 @@ const upsertSectionsBatch = async (req, res) => {
     const target = await Course.findById(targetId);
     if (!target) return res.status(404).json({ success: false, message: 'Target course not found' });
     const { doc: subj } = await upsertByName(Subject, { courseId: targetId, name: tab }, { courseId: targetId, name: tab, description: '', order: 0, isActive: true });
-    let chaptersCreated = 0, topicsCreated = 0;
+    let chaptersCreated = 0, topicsCreated = 0, testsCreated = 0, questionsCreated = 0;
     for (const sec of sections) {
       const { doc: chap, created: chapCreated } = await upsertByName(Chapter, { courseId: targetId, subjectId: subj._id, name: sec.title }, { courseId: targetId, subjectId: subj._id, name: sec.title, description: '', order: 0, isActive: true });
       if (chapCreated) chaptersCreated++;
       for (const top of (sec.topics || [])) {
-        const { created: topCreated } = await upsertByName(Topic, { course: targetId, subject: subj._id, chapter: chap._id, name: top.title }, { course: targetId, subject: subj._id, chapter: chap._id, name: top.title, description: '', order: 0, isFullTestSection: !!top.isFullTestSection, isActive: true });
+        const { doc: tgtTop, created: topCreated } = await upsertByName(Topic, { course: targetId, subject: subj._id, chapter: chap._id, name: top.title }, { course: targetId, subject: subj._id, chapter: chap._id, name: top.title, description: '', order: 0, isFullTestSection: !!top.isFullTestSection, isActive: true });
         if (topCreated) topicsCreated++;
+        for (const t of (top.tests || [])) {
+          const { doc: tgtTest, created: testCreated } = await upsertByName(Test, { course: targetId, subject: subj._id, chapter: chap._id, topic: tgtTop._id, title: t.title }, { course: targetId, subject: subj._id, chapter: chap._id, topic: tgtTop._id, title: t.title, duration: t.duration || 30, totalMarks: t.totalMarks || 0, instructions: t.instructions || '', isActive: t.isActive !== false });
+          if (testCreated) testsCreated++;
+          for (const q of (t.questions || [])) {
+            const { created: qCreated } = await upsertByName(Question, { testId: tgtTest._id, questionText: q.questionText }, { testId: tgtTest._id, questionText: q.questionText, direction: q.direction || '', options: Array.isArray(q.options) ? q.options : [], correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0, marks: q.marks != null ? q.marks : 3, negativeMarks: q.negativeMarks != null ? q.negativeMarks : 1, explanation: q.explanation || '', type: q.type || 'MCQ', order: q.order != null ? q.order : 0, isActive: q.isActive !== false });
+            if (qCreated) questionsCreated++;
+          }
+        }
       }
     }
-    return res.status(200).json({ success: true, created: { chaptersCreated, topicsCreated } });
+    return res.status(200).json({ success: true, created: { chaptersCreated, topicsCreated, testsCreated, questionsCreated } });
   } catch (err) {
     console.error('upsertSectionsBatch error:', err);
     return res.status(500).json({ success: false, message: err.message || 'Upsert batch failed' });

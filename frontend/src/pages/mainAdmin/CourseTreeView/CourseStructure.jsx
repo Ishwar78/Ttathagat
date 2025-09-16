@@ -323,6 +323,10 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState([]);
   const [query, setQuery] = useState("");
+  const authHeaderVal = () => {
+    const t = localStorage.getItem('adminToken') || localStorage.getItem('token') || localStorage.getItem('authToken') || 'admin-dev';
+    return `Bearer ${t}`;
+  };
   const [selected, setSelected] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tg_last_targets')) || []; } catch { return []; }
   });
@@ -410,10 +414,10 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
         const token = localStorage.getItem('adminToken');
         const urlPrimary = `${API_BASE}/admin/courses?status=active&fields=_id,title,updatedAt&limit=500`;
         const urlFallback = `${API_BASE.replace(/\/$/, '')}/courses`;
-        let res = await fetch(urlPrimary, { headers: { Authorization: `Bearer ${token}` } });
+        let res = await fetch(urlPrimary, { headers: { Authorization: authHeaderVal() } });
         if (!res.ok) {
           // Try fallback to /api/courses
-          res = await fetch(urlFallback, { headers: { Authorization: `Bearer ${token}` } });
+          res = await fetch(urlFallback, { headers: { Authorization: authHeaderVal() } });
         }
         if (!res.ok) throw new Error(`Failed to load courses (${res.status})`);
         const data = await res.json();
@@ -422,7 +426,7 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
         // If titles are missing, fetch fallback endpoint and merge names
         if (normalized.some(x => !x.title)) {
           try {
-            const fb = await fetch(urlFallback, { headers: { Authorization: `Bearer ${token}` } });
+            const fb = await fetch(urlFallback, { headers: { Authorization: authHeaderVal() } });
             if (fb.ok) {
               const fbData = await fb.json();
               const fbList = (fbData.courses || fbData.data || fbData || []).map(c => ({ _id: c._id || c.id, title: c.title || c.name || '' }));
@@ -557,7 +561,7 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
         mode: { upsert: true, skipDuplicates: true }
       };
 
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'Idempotency-Key': idempotencyKey };
+      const headers = { 'Content-Type': 'application/json', Authorization: authHeaderVal(), 'Idempotency-Key': idempotencyKey };
 
       // Try bulk first with retries
       let attempts = 0; let maxAttempts = 3; let res;

@@ -69,6 +69,7 @@ export default function AdminThemeProvider() {
     };
 
     // Apply variables to root of admin pages
+    root.setAttribute('data-theme-name', 'Tathagat Admin Theme');
     const apply = (name, value) => root.style.setProperty(name, value);
     apply('--admin-font-sans', tokens.font);
     apply('--admin-primary', tokens.primary);

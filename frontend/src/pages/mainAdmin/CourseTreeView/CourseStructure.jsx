@@ -415,7 +415,23 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
         if (!res.ok) throw new Error(`Failed to load courses (${res.status})`);
         const data = await res.json();
         const list = data.courses || data.data || data || [];
-        const normalized = list.map((c) => ({ _id: c._id || c.id, title: c.title || c.name || 'Untitled' })).filter(x => x._id);
+        let normalized = list.map((c) => ({ _id: c._id || c.id, title: c.title || c.name || '' })).filter(x => x._id);
+        // If titles are missing, fetch fallback endpoint and merge names
+        if (normalized.some(x => !x.title)) {
+          try {
+            const fb = await fetch(urlFallback, { headers: { Authorization: `Bearer ${token}` } });
+            if (fb.ok) {
+              const fbData = await fb.json();
+              const fbList = (fbData.courses || fbData.data || fbData || []).map(c => ({ _id: c._id || c.id, title: c.title || c.name || '' }));
+              const nameMap = new Map(fbList.map(c => [String(c._id), c.title]));
+              normalized = normalized.map(c => ({ _id: c._id, title: c.title || nameMap.get(String(c._id)) || 'Untitled' }));
+            } else {
+              normalized = normalized.map(c => ({ _id: c._id, title: c.title || 'Untitled' }));
+            }
+          } catch {
+            normalized = normalized.map(c => ({ _id: c._id, title: c.title || 'Untitled' }));
+          }
+        }
         setCourses(normalized);
         saveCache(normalized);
       } catch (e) {

@@ -482,12 +482,31 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
     const tabNames = tabButtons.length ? tabButtons.map(b => (b.textContent || '').trim()) : ["Quant","DI-LR","Verbal","GK & CA","MOCK TEST","CAT PAPERS"];
     const tabs = tabNames.map(name => ({ name, sections: [] }));
 
+    // Determine active tab
     const activeBtn = document.querySelector('.tz-subject-tabs .tz-subject-tab.active');
     const activeName = activeBtn ? (activeBtn.textContent || '').trim() : (tabNames[0] || 'Quant');
-    const rows = Array.from(document.querySelectorAll('.tz-chapter-card summary'));
-    const titles = rows.map(r => (r.textContent || '').trim()).filter(Boolean);
+
+    // Gather section rows and their topics (if visible)
+    const summaryEls = Array.from(document.querySelectorAll('.tz-chapter-card summary'));
+    const sectionsForActive = summaryEls.map((summary) => {
+      const title = (summary.textContent || '').trim();
+      const details = summary.closest('.tz-chapter-card');
+      let topics = [];
+      if (details) {
+        const topicEls = Array.from(details.querySelectorAll('.tz-topic-item'));
+        if (topicEls.length) {
+          topics = topicEls.map((el) => {
+            const raw = (el.childNodes[0] && el.childNodes[0].textContent) || el.textContent || '';
+            const clean = raw.trim().replace(/^📗\s*/, '');
+            return { title: clean };
+          });
+        }
+      }
+      return title ? { title, topics } : null;
+    }).filter(Boolean);
+
     const idx = tabs.findIndex(t => t.name === activeName);
-    if (idx >= 0 && titles.length) tabs[idx].sections = titles.map(t => ({ title: t, topics: [] }));
+    if (idx >= 0 && sectionsForActive.length) tabs[idx].sections = sectionsForActive;
 
     return { sourceCourseId, tabs };
   };

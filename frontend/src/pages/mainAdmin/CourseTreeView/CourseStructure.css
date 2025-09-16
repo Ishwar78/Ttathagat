@@ -21,6 +21,113 @@ body {
   text-align: center;
 }
 
+/* Heading wrapper to place action button on the right without changing heading center */
+.tz-heading-wrap {
+  position: relative;
+}
+
+.tz-send-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+}
+
+.tz-send-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* Send modal specific controls */
+.tz-send-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.tz-send-search {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.tz-select-all-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.tz-course-list-viewport {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: auto;
+  background: #fff;
+}
+
+.tz-course-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  height: 44px;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.tz-course-title {
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tz-course-id {
+  color: #6b7280;
+  font-size: 12px;
+  margin-left: 0.5rem;
+}
+
+.tz-modal-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.tz-btn-secondary {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+}
+
+.tz-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+}
+
+.tz-btn-primary[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .tz-subject-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -315,4 +422,3 @@ body {
   font-size: 0.9rem;
   font-style: italic;
 }
-

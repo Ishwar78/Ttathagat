@@ -503,6 +503,7 @@ const App = () => {
       <BrowserRouter>
         <AppContent />
         <ToastContainer
+          id="tg-toast"
           position="top-right"
           autoClose={3000}
           hideProgressBar={false}

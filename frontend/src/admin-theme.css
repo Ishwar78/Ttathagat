@@ -16,13 +16,37 @@
   --admin-text-muted: var(--tatha-text-muted, #64748b);
   --admin-border: var(--tatha-border, #e5e7eb);
 
+  /* Typography */
+  --admin-h1: 32px/40px  var(--admin-font-sans);
+  --admin-h2: 28px/36px  var(--admin-font-sans);
+  --admin-h3: 24px/32px  var(--admin-font-sans);
+  --admin-h4: 20px/28px  var(--admin-font-sans);
+  --admin-h5: 18px/26px  var(--admin-font-sans);
+  --admin-h6: 16px/24px  var(--admin-font-sans);
+  --admin-body: 14px/22px var(--admin-font-sans);
+  --admin-caption: 12px/18px var(--admin-font-sans);
+  --admin-letter-spacing: 0.2px;
+
+  /* Spacing scale */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px;
+
+  /* Radii */
   --admin-radius-md: 8px;
   --admin-radius-xl: 16px;
   --admin-radius-2xl: 20px;
 
+  /* Shadows */
   --admin-shadow-sm: 0 1px 2px rgba(0,0,0,.05);
   --admin-shadow-md: 0 4px 12px rgba(0,0,0,.06);
   --admin-shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+
+  /* Controls */
+  --admin-btn-h-sm: 32px;
+  --admin-btn-h-md: 40px;
+  --admin-btn-h-lg: 48px;
+  --admin-input-h-sm: 36px;
+  --admin-input-h-md: 44px;
+  --admin-input-h-lg: 52px;
 
   --admin-focus: 0 0 0 3px rgba(26,35,126,.3);
   --admin-transition: 200ms ease;
@@ -46,7 +70,21 @@
   font-family: var(--admin-font-sans);
   color: var(--admin-text);
   background: var(--admin-bg);
+  letter-spacing: var(--admin-letter-spacing);
 }
+
+.admin-theme h1 { font: var(--admin-h1); }
+.admin-theme h2 { font: var(--admin-h2); }
+.admin-theme h3 { font: var(--admin-h3); }
+.admin-theme h4 { font: var(--admin-h4); }
+.admin-theme h5 { font: var(--admin-h5); }
+.admin-theme h6 { font: var(--admin-h6); }
+.admin-theme, .admin-theme p, .admin-theme li, .admin-theme label, .admin-theme input, .admin-theme button { font: var(--admin-body); }
+.admin-theme .caption { font: var(--admin-caption); color: var(--admin-text-muted); }
+
+/* Links */
+.admin-theme a { color: var(--admin-primary); text-decoration: none; }
+.admin-theme a:hover { text-decoration: underline; }
 
 /* Sidebar */
 .admin-theme .admin-sidebar {
@@ -140,6 +178,8 @@
 .admin-theme .btn, .admin-theme button {
   border-radius: var(--admin-radius-md);
   transition: background var(--admin-transition), color var(--admin-transition), box-shadow var(--admin-transition), border var(--admin-transition);
+  min-height: var(--admin-btn-h-md);
+  padding: 0 var(--space-4);
 }
 .admin-theme .btn-primary, .admin-theme button.primary {
   background: var(--admin-primary);
@@ -161,6 +201,7 @@
 .admin-theme thead th { position: sticky; top: 60px; background: var(--admin-surface); z-index: 1; }
 .admin-theme tbody tr:nth-child(even) { background: color-mix(in oklab, var(--admin-text) 4%, transparent); }
 .admin-theme th, .admin-theme td { padding: 12px 16px; border-bottom: 1px solid var(--admin-border); }
+.admin-theme .table-zebra tbody tr:hover { background: color-mix(in oklab, var(--admin-primary) 6%, transparent); }
 
 .admin-theme input[type="text"],
 .admin-theme input[type="email"],
@@ -171,6 +212,7 @@
   border: 1px solid var(--admin-border);
   border-radius: 12px;
   padding: 10px 12px;
+  min-height: var(--admin-input-h-md);
 }
 .admin-theme input:focus, .admin-theme select:focus, .admin-theme textarea:focus {
   outline: none; border-color: var(--admin-primary); box-shadow: var(--admin-focus);
@@ -182,6 +224,27 @@
 .admin-theme .tabs { display: inline-flex; background: var(--admin-bg); border: 1px solid var(--admin-border); border-radius: 12px; padding: 4px; gap: 4px; }
 .admin-theme .tab { padding: 8px 12px; border-radius: 10px; color: var(--admin-text-muted); cursor: pointer; transition: var(--admin-transition); }
 .admin-theme .tab.active { background: var(--admin-surface); color: var(--admin-text); box-shadow: 0 0 0 2px color-mix(in oklab, var(--admin-primary) 20%, transparent) inset; }
+
+/* Breadcrumb */
+.admin-theme .admin-breadcrumb { display: flex; gap: var(--space-2); align-items: center; color: var(--admin-text-muted); margin-bottom: var(--space-4); }
+.admin-theme .admin-breadcrumb a { color: var(--admin-primary); }
+
+/* Dropdown / menu */
+.admin-theme .admin-menu { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 12px; box-shadow: var(--admin-shadow-md); padding: 6px; }
+.admin-theme .admin-menu .item { padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.admin-theme .admin-menu .item:hover { background: color-mix(in oklab, var(--admin-primary) 8%, transparent); }
+
+/* Modals */
+.admin-theme .admin-modal-overlay { position: fixed; inset: 0; background: rgba(30,41,59,.6); display: grid; place-items: center; z-index: 9999; }
+.admin-theme .admin-modal { background: var(--admin-surface); border-radius: 12px; box-shadow: var(--admin-shadow-lg); border: 1px solid var(--admin-border); max-width: 720px; width: 96%; }
+
+/* Pagination */
+.admin-theme .admin-pagination { display: flex; gap: 6px; align-items: center; }
+.admin-theme .admin-pagination .page { padding: 6px 10px; border: 1px solid var(--admin-border); border-radius: 8px; }
+.admin-theme .admin-pagination .page.active { background: var(--admin-primary); color: #fff; border-color: var(--admin-primary); }
+
+/* Empty states */
+.admin-theme .admin-empty { text-align: center; color: var(--admin-text-muted); padding: var(--space-8) 0; }
 
 /* Theme Check styles */
 .admin-theme .admin-theme-check { margin: 16px 0; padding: 8px 12px; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 10px; font-size: 12px; color: var(--admin-text-muted); }

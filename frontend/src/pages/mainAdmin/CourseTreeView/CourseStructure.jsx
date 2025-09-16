@@ -405,8 +405,8 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
       setFetching(true);
       try {
         const token = localStorage.getItem('adminToken');
-        const urlPrimary = `${API_BASE}/admin/courses?status=active&fields=_id,title`;
-        const urlFallback = `${API_BASE.replace(/\/$/, '')}/courses?status=active&fields=_id,title`;
+        const urlPrimary = `${API_BASE}/admin/courses?status=active&fields=_id,title,updatedAt&limit=500`;
+        const urlFallback = `${API_BASE.replace(/\/$/, '')}/courses`;
         let res = await fetch(urlPrimary, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) {
           // Try fallback to /api/courses
@@ -471,6 +471,25 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
     const enc = new TextEncoder().encode(text);
     const buf = await window.crypto.subtle.digest('SHA-256', enc);
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  };
+
+  // Build structure using global cache or DOM when modal is open
+  const buildStructure = () => {
+    if (window.__tgStructure && Array.isArray(window.__tgStructure.tabs)) {
+      return { sourceCourseId, tabs: window.__tgStructure.tabs };
+    }
+    const tabButtons = Array.from(document.querySelectorAll('.tz-subject-tabs .tz-subject-tab'));
+    const tabNames = tabButtons.length ? tabButtons.map(b => (b.textContent || '').trim()) : ["Quant","DI-LR","Verbal","GK & CA","MOCK TEST","CAT PAPERS"];
+    const tabs = tabNames.map(name => ({ name, sections: [] }));
+
+    const activeBtn = document.querySelector('.tz-subject-tabs .tz-subject-tab.active');
+    const activeName = activeBtn ? (activeBtn.textContent || '').trim() : (tabNames[0] || 'Quant');
+    const rows = Array.from(document.querySelectorAll('.tz-chapter-card summary'));
+    const titles = rows.map(r => (r.textContent || '').trim()).filter(Boolean);
+    const idx = tabs.findIndex(t => t.name === activeName);
+    if (idx >= 0 && titles.length) tabs[idx].sections = titles.map(t => ({ title: t, topics: [] }));
+
+    return { sourceCourseId, tabs };
   };
 
   const tabsHash = async (structure) => {

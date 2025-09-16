@@ -387,7 +387,10 @@ const SendStructureModal = ({ open, onClose, sourceCourseId, sourceUpdatedAt }) 
       if (!ts || !data) return null;
       const TEN_MIN = 10 * 60 * 1000;
       if (Date.now() - ts > TEN_MIN) return null;
-      return Array.isArray(data) ? data : null;
+      if (!Array.isArray(data)) return null;
+      // Invalidate cache if any "Untitled" or empty title exists
+      if (data.some(d => !d || !d.title || d.title === 'Untitled')) return null;
+      return data;
     } catch {
       return null;
     }

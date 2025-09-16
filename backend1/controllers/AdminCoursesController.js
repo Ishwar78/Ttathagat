@@ -159,7 +159,7 @@ const cloneStructure = async (req, res) => {
 
 // Apply provided structure tabs->sections->topics into a target course
 async function applyStructureToTarget(tabs, targetCourseId) {
-  let subjectsCreated = 0, chaptersCreated = 0, topicsCreated = 0;
+  let subjectsCreated = 0, chaptersCreated = 0, topicsCreated = 0, testsCreated = 0, questionsCreated = 0;
   for (const tab of tabs || []) {
     if (!tab || !tab.name) continue;
     const { doc: subj, created: subjCreated } = await upsertByName(
@@ -182,16 +182,60 @@ async function applyStructureToTarget(tabs, targetCourseId) {
       const topics = Array.isArray(sec.topics) ? sec.topics : [];
       for (const top of topics) {
         if (!top || !top.title) continue;
-        const { created: topCreated } = await upsertByName(
+        const { doc: tgtTop, created: topCreated } = await upsertByName(
           Topic,
           { course: targetCourseId, subject: subj._id, chapter: chap._id, name: top.title },
           { course: targetCourseId, subject: subj._id, chapter: chap._id, name: top.title, description: "", order: 0, isFullTestSection: !!top.isFullTestSection, isActive: true }
         );
         if (topCreated) topicsCreated++;
+
+        const tests = Array.isArray(top.tests) ? top.tests : [];
+        for (const t of tests) {
+          if (!t || !t.title) continue;
+          const { doc: tgtTest, created: testCreated } = await upsertByName(
+            Test,
+            { course: targetCourseId, subject: subj._id, chapter: chap._id, topic: tgtTop._id, title: t.title },
+            {
+              course: targetCourseId,
+              subject: subj._id,
+              chapter: chap._id,
+              topic: tgtTop._id,
+              title: t.title,
+              duration: t.duration || t.duration_minutes || 30,
+              totalMarks: t.totalMarks || t.total_marks || 0,
+              instructions: t.instructions || "",
+              isActive: t.isActive !== false,
+            }
+          );
+          if (testCreated) testsCreated++;
+
+          const questions = Array.isArray(t.questions) ? t.questions : [];
+          for (const q of questions) {
+            if (!q || !q.questionText) continue;
+            const { created: qCreated } = await upsertByName(
+              Question,
+              { testId: tgtTest._id, questionText: q.questionText },
+              {
+                testId: tgtTest._id,
+                questionText: q.questionText,
+                direction: q.direction || "",
+                options: Array.isArray(q.options) ? q.options : [],
+                correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+                marks: q.marks != null ? q.marks : 3,
+                negativeMarks: q.negativeMarks != null ? q.negativeMarks : 1,
+                explanation: q.explanation || "",
+                type: q.type || "MCQ",
+                order: q.order != null ? q.order : 0,
+                isActive: q.isActive !== false,
+              }
+            );
+            if (qCreated) questionsCreated++;
+          }
+        }
       }
     }
   }
-  return { subjectsCreated, chaptersCreated, topicsCreated };
+  return { subjectsCreated, chaptersCreated, topicsCreated, testsCreated, questionsCreated };
 }
 
 // Bulk endpoint that can accept provided structure; if not provided, it falls back to DB-based cloneStructure

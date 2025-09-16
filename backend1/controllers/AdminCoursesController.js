@@ -3,6 +3,8 @@ const Course = require("../models/course/Course");
 const Subject = require("../models/course/Subject");
 const Chapter = require("../models/course/Chapter");
 const Topic = require("../models/course/Topic");
+const Test = require("../models/course/Test");
+const Question = require("../models/course/Question");
 
 // GET /api/admin/courses?status=active&fields=_id,title
 // Supports minimal projection and filters to reduce payload/credits

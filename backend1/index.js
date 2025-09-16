@@ -436,7 +436,7 @@ const addSampleAnnouncements = async () => {
         isActive: true,
       },
       {
-        title: "📈 Performance Reports Available",
+        title: "�� Performance Reports Available",
         content:
           "Your monthly performance report is now available in the Analysis section. Check your progress and identify areas for improvement.",
         type: "update",
@@ -691,6 +691,7 @@ safeUse("/api/practice-tests", "./routes/practiceTestRoutes");
 safeUse("/api", "./routes/nextStep");
 safeUse("/api/admin", "./routes/batchesAdmin");
 safeUse("/api/admin/academics", "./routes/adminAcademics");
+safeUse("/api/admin/courses", "./routes/adminCourses");
 
 /* -------------------- Production Static (kept your note) -------------------- */
 if (process.env.NODE_ENV === "production") {

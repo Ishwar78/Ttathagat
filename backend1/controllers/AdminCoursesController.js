@@ -250,17 +250,43 @@ const cloneStructureBulk = async (req, res) => {
     if (structure && Array.isArray(structure.tabs)) {
       tabs = structure.tabs;
     } else if (sourceCourseId) {
-      // Derive from DB if structure not provided
+      // Derive full structure from DB (subjects -> chapters -> topics -> tests -> questions)
       const srcSubs = await Subject.find({ courseId: sourceCourseId }).sort({ order: 1, createdAt: 1 });
       const subIds = srcSubs.map(s => s._id);
       const srcChaps = await Chapter.find({ subjectId: { $in: subIds } }).sort({ order: 1, createdAt: 1 });
       const chapIds = srcChaps.map(c => c._id);
       const srcTops = await Topic.find({ chapter: { $in: chapIds } }).sort({ order: 1, createdAt: 1 });
+      const topIds = srcTops.map(t => t._id);
+      const srcTests = await Test.find({ topic: { $in: topIds } }).sort({ createdAt: 1 });
+      const testIds = srcTests.map(t => t._id);
+      const srcQuestions = await Question.find({ testId: { $in: testIds } }).sort({ order: 1, createdAt: 1 });
       tabs = srcSubs.map(s => ({
         name: s.name,
         sections: srcChaps.filter(c => String(c.subjectId) === String(s._id)).map(c => ({
           title: c.name,
-          topics: srcTops.filter(t => String(t.chapter) === String(c._id)).map(t => ({ title: t.name, isFullTestSection: !!t.isFullTestSection }))
+          topics: srcTops.filter(t => String(t.chapter) === String(c._id)).map(t => ({
+            title: t.name,
+            isFullTestSection: !!t.isFullTestSection,
+            tests: srcTests.filter(tt => String(tt.topic) === String(t._id)).map(tt => ({
+              title: tt.title,
+              duration: tt.duration,
+              totalMarks: tt.totalMarks,
+              instructions: tt.instructions,
+              isActive: tt.isActive,
+              questions: srcQuestions.filter(q => String(q.testId) === String(tt._id)).map(q => ({
+                questionText: q.questionText,
+                direction: q.direction,
+                options: q.options,
+                correctOptionIndex: q.correctOptionIndex,
+                marks: q.marks,
+                negativeMarks: q.negativeMarks,
+                explanation: q.explanation,
+                type: q.type,
+                order: q.order,
+                isActive: q.isActive
+              }))
+            }))
+          }))
         }))
       }));
     } else {

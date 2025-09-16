@@ -17,6 +17,9 @@ const listCourses = async (req, res) => {
         if (f.trim()) projection[f.trim()] = 1;
       });
     }
+    // Always include _id and name so clients can display titles correctly
+    projection._id = 1;
+    projection.name = 1;
 
     // Normalize title alias for name
     const courses = await Course.find(filter, projection).sort({ createdAt: -1 }).lean();
